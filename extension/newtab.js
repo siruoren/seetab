@@ -19,10 +19,11 @@ function updateClock() {
   document.getElementById('clock').textContent = `${h}:${m}`;
 
   const {lunar, term} = getLunarInfo(now);
-  const dateStr = now.toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'});
-  document.getElementById('date').textContent = lunar ? `${dateStr} ${lunar}` : dateStr;
+  const dateLocale = getDateLocale();
+  const dateStr = now.toLocaleDateString(dateLocale, {year: 'numeric', month: 'long', day: 'numeric'});
+  document.getElementById('date').textContent = (lunar && getLocale() === 'zh') ? `${dateStr} ${lunar}` : dateStr;
 
-  const weekday = now.toLocaleDateString('zh-CN', {weekday: 'short'});
+  const weekday = now.toLocaleDateString(dateLocale, {weekday: 'short'});
   document.getElementById('weekday').textContent = term ? `${weekday} ${term}` : weekday;
 }
 
@@ -127,24 +128,10 @@ function updateThemeIcon(theme) {
 }
 
 // === 天气 ===
-const weatherIcons = {
-  '晴': '☀️', '多云': '⛅', '阴': '☁️', '雨': '🌧️',
-  '雪': '❄️', '雾': '🌫️', '雷阵雨': '⛈️', '小雨': '🌦️', '大风': '💨'
-};
-
-function getWeatherIcon(desc) {
-  for (const key in weatherIcons) if (desc.includes(key)) return weatherIcons[key];
-  return '🌤️';
-}
-
-function getWeatherDesc(code) {
-  const codes = {0:'晴',1:'晴',2:'多云',3:'多云',45:'雾',48:'雾',51:'小雨',53:'小雨',55:'小雨',61:'雨',63:'雨',65:'雨',71:'雪',73:'雪',75:'雪',80:'阵雨',81:'阵雨',82:'阵雨',95:'雷阵雨',96:'雷阵雨',99:'雷阵雨'};
-  return codes[code] || '晴';
-}
-
 async function fetchWeather(city) {
   try {
-    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`);
+    const lang = getLocale();
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${lang}`);
     const geoData = await geoRes.json();
     if (!geoData.results || geoData.results.length === 0) return null;
     const {latitude, longitude, name} = geoData.results[0];
@@ -266,7 +253,7 @@ function toFetchUrl(url) {
 function proxyFetch(url, options) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ type: 'proxyFetch', url, options }, resp => {
-      if (!resp) { reject(new Error('background 无响应')); return; }
+      if (!resp) { reject(new Error(t('background.noResponse'))); return; }
       if (resp.error) { reject(new Error(resp.error)); return; }
       resolve({
         ok: resp.ok,
@@ -296,6 +283,15 @@ async function fetchFromBackend() {
   return null;
 }
 
+// 后台服务状态指示
+function setBackendStatus(online) {
+  const el = document.getElementById('backendStatus');
+  if (!el) return;
+  el.classList.remove('online', 'offline');
+  el.classList.add(online ? 'online' : 'offline');
+  el.title = online ? t('backend.online') : t('backend.offline');
+}
+
 async function loadData() {
   // 加载浏览器本地书签
   await loadLocalBookmarks();
@@ -305,10 +301,12 @@ async function loadData() {
   }
   const fresh = await fetchFromBackend();
   if (fresh) {
+    setBackendStatus(true);
     // 缓存和最新数据相同时不重复渲染
     if (cached && fresh.last_update === cached.last_update && fresh.total === cached.total) return;
     await renderDataWithVisited(fresh);
   } else if (!cached) {
+    setBackendStatus(false);
     if (_localBookmarkCategories.length > 0) {
       // 无后端数据但有本地书签，仍显示
       allCategories = [];
@@ -316,7 +314,7 @@ async function loadData() {
       const recentItems = await getRecentVisited();
       renderMainView(recentItems);
     } else {
-      document.getElementById('content').innerHTML = '<div class="empty">未配置后端地址或无法连接<br><small>请点击右上角设置按钮进行配置</small></div>';
+      document.getElementById('content').innerHTML = `<div class="empty">${t('error.noBackend')}<br><small>${t('error.noBackend.hint')}</small></div>`;
     }
   }
 }
@@ -326,8 +324,8 @@ async function renderDataWithVisited(data) {
   allCategories = data.categories || [];
   _validCategories = null;
   const total = data.total || 0;
-  const updateTime = data.last_update ? new Date(data.last_update * 1000).toLocaleString('zh-CN') : '';
-  if (updateTime) document.getElementById('updateInfo').textContent = `${total} 书签 | 更新于 ${updateTime}`;
+  const updateTime = data.last_update ? new Date(data.last_update * 1000).toLocaleString(getDateLocale()) : '';
+  if (updateTime) document.getElementById('updateInfo').textContent = t('info.updateInfo', total, updateTime);
   if (isSearchMode) return;
 
   const recentItems = await getRecentVisited();
@@ -369,7 +367,7 @@ async function getRecentVisited() {
 function renderTopVisited(items) {
   if (!items || items.length === 0) return '';
   let html = '<div class="top-visited">';
-  html += '<div class="top-visited-title">最近使用</div>';
+  html += `<div class="top-visited-title">${t('recent.title')}</div>`;
   html += '<div class="top-visited-grid">';
   items.forEach(item => {
     // 最近使用只显示书签名，去掉「目录名 - 」前缀
@@ -409,7 +407,7 @@ function loadLocalBookmarks() {
         for (const node of nodes) {
           if (node.url) {
             // 书签条目，归入当前目录
-            const catName = parentPath || '浏览器书签';
+            const catName = parentPath || t('bookmark.browser');
             let cat = _localBookmarkCategories.find(c => c.category === catName);
             if (!cat) {
               cat = { category: catName, items: [] };
@@ -485,7 +483,7 @@ function renderMainView(recentItems) {
     html += `<div class="cat-card ${isActive ? 'active' : ''}" data-cat="${escAttr(cat.category)}" data-idx="${i}">
       <div class="cat-icon ico-${i % 8}">${catIcon(i)}</div>
       <div class="cat-name">${escHtml(shortName)}</div>
-      <div class="cat-count">${cat.items.length} 书签</div>
+      <div class="cat-count">${cat.items.length} ${t('bookmark.count')}</div>
     </div>`;
   });
   html += '</div>';
@@ -525,7 +523,7 @@ function renderBookmarkPanel(categoryName, validCategories) {
   html += `<span class="panel-icon ico-${catIdx % 8}">${catIcon(catIdx)}</span>`;
   html += `<span class="panel-title">${escHtml(shortName)}</span>`;
   if (parentPath) html += `<span class="panel-path">${escHtml(parentPath)}</span>`;
-  html += `<span class="panel-count">${cat.items.length} 个书签</span>`;
+  html += `<span class="panel-count">${cat.items.length} ${t('bookmark.count.full')}</span>`;
   html += '<div class="panel-close" data-action="close-panel">✕</div>';
   html += '</div>';
 
@@ -676,7 +674,7 @@ function bindContentEvents() {
 const SEARCH_ENGINES = {
   bing: { name: 'Bing', url: 'https://cn.bing.com/search?q=' },
   google: { name: 'Google', url: 'https://www.google.com/search?q=' },
-  baidu: { name: '百度', url: 'https://www.baidu.com/s?wd=' }
+  baidu: { name: '', url: 'https://www.baidu.com/s?wd=' }
 };
 
 let currentSearchEngine = 'bing';
@@ -746,6 +744,7 @@ function performSearch(keyword) {
   if (keywords.length === 0) return;
   const categories = getCategories();
   const engine = SEARCH_ENGINES[currentSearchEngine] || SEARCH_ENGINES.bing;
+  const engineName = currentSearchEngine === 'baidu' ? t('search.engine.baidu') : engine.name;
 
   // 多关键词模糊匹配：文本或拼音中包含所有关键词
   function matchAll(text, kwds) {
@@ -758,7 +757,7 @@ function performSearch(keyword) {
   const searchUrl = engine.url + encodeURIComponent(keyword);
   let html = `<a class="search-engine-hint" href="${escAttr(searchUrl)}" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/></svg>
-    在 ${escHtml(engine.name)} 中搜索「${escHtml(displayKeyword)}」
+    ${t('search.engine.hint', escHtml(engineName), escHtml(displayKeyword))}
   </a>`;
 
   // 分类搜索结果：目录名匹配 vs 书签名/URL匹配
@@ -790,7 +789,7 @@ function performSearch(keyword) {
       html += `<div class="cat-card" data-cat="${escAttr(cat.category)}" data-idx="${idx}">
         <div class="cat-icon ico-${idx % 8}">${catIcon(idx)}</div>
         <div class="cat-name">${escHtml(shortName)}</div>
-        <div class="cat-count">${cat.items.length} 书签</div>
+        <div class="cat-count">${cat.items.length} ${t('bookmark.count')}</div>
       </div>`;
     });
     html += '</div>';
@@ -820,7 +819,7 @@ function performSearch(keyword) {
     html += '</div></div>';
   }
 
-  if (!found) html += '<div class="empty">未找到匹配的书签</div>';
+  if (!found) html += `<div class="empty">${t('search.noResults')}</div>`;
   document.getElementById('content').innerHTML = html;
   loadFavicons();
 }
@@ -847,8 +846,8 @@ function toggleSearchFolder(catName, catIdx, isActive) {
     html += '<div class="bookmark-panel-header">';
     html += `<span class="panel-icon ico-${catIdx % 8}">${catIcon(catIdx)}</span>`;
     html += `<span class="panel-title">${escHtml(shortName)}</span>`;
-    html += `<span class="panel-count">${cat.items.length} 个书签</span>`;
-    html += '</div>';
+    html += `<span class="panel-count">${cat.items.length} ${t('bookmark.count.full')}</span>`;
+  html += '</div>';
     html += '<div class="bookmark-grid">';
     cat.items.forEach(item => {
       const t = escHtml(shortName) + ' - ' + escHtml(cleanTitle(item.title));
@@ -871,8 +870,9 @@ chrome.runtime.onMessage.addListener((msg) => {
     allCategories = msg.data.categories || [];
     _validCategories = null;
     const total = msg.data.total || 0;
-    const updateTime = msg.data.last_update ? new Date(msg.data.last_update * 1000).toLocaleString('zh-CN') : '';
-    if (updateTime) document.getElementById('updateInfo').textContent = `${total} 书签 | 更新于 ${updateTime}`;
+    const updateTime = msg.data.last_update ? new Date(msg.data.last_update * 1000).toLocaleString(getDateLocale()) : '';
+    if (updateTime) document.getElementById('updateInfo').textContent = t('info.updateInfo', total, updateTime);
+    setBackendStatus(true);
     if (isSearchMode) return;
     getRecentVisited().then(items => renderMainView(items));
   }
@@ -901,12 +901,12 @@ async function saveRemoteToLocal() {
 
   try {
     if (!chrome || !chrome.bookmarks) {
-      showToast('当前环境不支持浏览器书签API');
+      showToast(t('bookmark.save.noApi'));
       return;
     }
     const remoteCats = allCategories.filter(c => c.category !== '__root_bookmarks__');
     if (!remoteCats.length) {
-      showToast('没有远程书签可保存');
+      showToast(t('bookmark.save.none'));
       return;
     }
 
@@ -921,7 +921,7 @@ async function saveRemoteToLocal() {
     // 带超时的 Promise 包装
     function bmCall(fn, ...args) {
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('操作超时')), 10000);
+        const timer = setTimeout(() => reject(new Error(t('error.timeout'))), 10000);
         fn(...args, (result) => {
           clearTimeout(timer);
           if (chrome.runtime.lastError) {
@@ -947,7 +947,7 @@ async function saveRemoteToLocal() {
     // 获取书签栏（工具栏）节点
     const barNode = localTree[0]?.children?.find(n => n.id === '1' || !n.url) || localTree[0]?.children?.[0];
     const barId = barNode?.id;
-    if (!barId) { showToast('无法获取书签栏'); return; }
+    if (!barId) { showToast(t('bookmark.save.noBar')); return; }
 
     let saved = 0, skipped = 0;
 
@@ -977,13 +977,13 @@ async function saveRemoteToLocal() {
     }
 
     if (saved === 0 && skipped > 0) {
-      showToast(`所有 ${skipped} 个远程书签已存在于本地，无需添加`);
+      showToast(t('bookmark.save.allExist', skipped));
     } else {
-      showToast(`保存完成：新增 ${saved} 个，跳过 ${skipped} 个已存在`);
+      showToast(t('bookmark.save.complete', saved, skipped));
     }
   } catch (e) {
     console.error('[SeeTab] 保存远程书签失败:', e);
-    showToast('保存失败：' + (e.message || e));
+    showToast(t('bookmark.save.failed', (e.message || e)));
   } finally {
     btn.classList.remove('saving');
   }
@@ -1066,11 +1066,25 @@ function removeWallpaper() {
 }
 
 // === 初始化 ===
-initTheme();
-loadSearchEngine();
-updateClock();
-setInterval(updateClock, 10000);
-setupSearch();
-loadData();
-initWeather();
-loadBingWallpaper();
+initLocale().then(() => {
+  applyI18n();
+  initTheme();
+  loadSearchEngine();
+  updateClock();
+  setInterval(updateClock, 10000);
+  setupSearch();
+  loadData();
+  initWeather();
+  loadBingWallpaper();
+});
+
+// 监听语言变更
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.locale) {
+    initLocale().then(() => {
+      applyI18n();
+      updateClock();
+      renderMainView();
+    });
+  }
+});

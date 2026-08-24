@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SeeTab</title>
+<title data-i18n="title.newtab">SeeTab</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -731,6 +731,59 @@ body > .save-bm-toast {
   pointer-events: none;
 }
 
+/* 后台服务状态指示器 - 固定右下角 */
+.backend-status {
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text2);
+  opacity: 0.7;
+}
+
+.backend-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #888;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.backend-status.online .backend-status-dot {
+  background: #2ecc71;
+  box-shadow: 0 0 6px rgba(46,204,113,0.5);
+}
+
+.backend-status.offline .backend-status-dot {
+  background: #e74c3c;
+  box-shadow: 0 0 6px rgba(231,76,60,0.5);
+}
+
+/* 语言选择器 */
+.locale-select {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--weather-bg);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s;
+}
+
+.locale-select:hover { background: var(--card-hover); }
+
+[data-theme="light"] .locale-select {
+  background: rgba(91,106,191,0.08);
+  color: #4a5568;
+}
+
 /* === 响应式 === */
 @media (max-width: 768px) {
   .category-grid { gap: 4px 3px; }
@@ -756,7 +809,7 @@ body > .save-bm-toast {
       <span class="weather-icon" id="weatherIcon">🌤️</span>
       <span class="weather-temp" id="weatherTemp">--°</span>
       <span class="weather-city" id="weatherCity"></span>
-      <input type="text" class="weather-city-input" id="weatherCityInput" placeholder="输入城市">
+      <input type="text" class="weather-city-input" id="weatherCityInput" data-i18n-placeholder="weather.city.placeholder" placeholder="输入城市">
     </div>
   </div>
   <div class="topbar-center">
@@ -765,10 +818,15 @@ body > .save-bm-toast {
     <div class="topbar-weekday" id="weekday"></div>
   </div>
   <div class="topbar-right">
-    <div class="theme-toggle" id="themeToggle" title="切换主题">
+    <div class="theme-toggle" id="themeToggle" data-i18n-title="theme.toggle" title="切换主题">
       <span class="theme-icon" id="themeIcon">🌙</span>
     </div>
-    <div class="save-bm-btn topbar-icon-btn" id="saveBmBtn" title="导出远程书签为HTML">
+    <select id="localeSelect" class="locale-select" title="Language">
+      <option value="auto" data-i18n="settings.language.auto">自动</option>
+      <option value="zh">中文</option>
+      <option value="en">English</option>
+    </select>
+    <div class="save-bm-btn topbar-icon-btn" id="saveBmBtn" data-i18n-title="bookmark.export.title" title="导出远程书签为HTML">
       <svg viewBox="0 0 24 24" width="18" height="18"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" fill="currentColor"/></svg>
     </div>
   </div>
@@ -778,9 +836,9 @@ body > .save-bm-toast {
   <div class="search-section">
     <div class="search-box">
       <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/></svg>
-      <input type="text" id="searchInput" placeholder="搜索书签或输入网址..." autocomplete="off">
-      <button class="search-clear" id="searchClear" title="清空">✕</button>
-      <button class="search-go" id="searchGo" title="搜索">
+      <input type="text" id="searchInput" data-i18n-placeholder="search.placeholder" placeholder="搜索书签或输入网址..." autocomplete="off">
+      <button class="search-clear" id="searchClear" data-i18n-title="search.clear" title="清空">✕</button>
+      <button class="search-go" id="searchGo" data-i18n-title="search.go" title="搜索">
         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill="currentColor"/></svg>
       </button>
     </div>
@@ -789,9 +847,137 @@ body > .save-bm-toast {
   <div class="content" id="content"></div>
 
   <div class="update-info" id="updateInfo"></div>
+  <div class="backend-status" id="backendStatus" title="">
+    <span class="backend-status-dot"></span>
+  </div>
 </div>
 
 <script>
+// === i18n 国际化模块（Web 版，使用 localStorage） ===
+const I18N = {
+  zh: {
+    'title.newtab': 'SeeTab',
+    'search.placeholder': '搜索书签或输入网址...',
+    'search.clear': '清空',
+    'search.go': '搜索',
+    'weather.city.placeholder': '输入城市',
+    'theme.toggle': '切换主题',
+    'bookmark.export.title': '导出远程书签为HTML',
+    'recent.title': '最近使用',
+    'bookmark.count': '书签',
+    'bookmark.count.full': '个书签',
+    'search.noResults': '未找到匹配的书签',
+    'search.engine.hint': '在 {0} 中搜索「{1}」',
+    'info.updateInfo': '{0} 书签 | 更新于 {1}',
+    'error.noBackend.web': '无法连接后端服务',
+    'bookmark.export.none': '没有远程书签可导出',
+    'bookmark.export.complete.dup': '已导出 {0} 个书签（跳过 {1} 个重复），请在浏览器中导入',
+    'bookmark.export.complete': '已导出 {0} 个书签，请在浏览器中导入',
+    'bookmark.export.failed': '导出失败：{0}',
+    'bookmark.bar': '书签栏',
+    'weather.sunny': '晴', 'weather.cloudy': '多云', 'weather.overcast': '阴',
+    'weather.rain': '雨', 'weather.snow': '雪', 'weather.fog': '雾',
+    'weather.thunderstorm': '雷阵雨', 'weather.lightRain': '小雨',
+    'weather.shower': '阵雨', 'weather.windy': '大风',
+    'search.engine.baidu': '百度',
+    'settings.language.auto': '自动（跟随浏览器）',
+    'backend.online': '后台服务正常',
+    'backend.offline': '后台服务不可用',
+  },
+  en: {
+    'title.newtab': 'SeeTab',
+    'search.placeholder': 'Search bookmarks or enter URL...',
+    'search.clear': 'Clear',
+    'search.go': 'Search',
+    'weather.city.placeholder': 'Enter city',
+    'theme.toggle': 'Toggle theme',
+    'bookmark.export.title': 'Export remote bookmarks as HTML',
+    'recent.title': 'Recent',
+    'bookmark.count': 'bookmarks',
+    'bookmark.count.full': 'bookmarks',
+    'search.noResults': 'No matching bookmarks found',
+    'search.engine.hint': 'Search "{1}" on {0}',
+    'info.updateInfo': '{0} bookmarks | Updated {1}',
+    'error.noBackend.web': 'Cannot connect to backend service',
+    'bookmark.export.none': 'No remote bookmarks to export',
+    'bookmark.export.complete.dup': 'Exported {0} bookmarks ({1} duplicates skipped). Import them in your browser.',
+    'bookmark.export.complete': 'Exported {0} bookmarks. Import them in your browser.',
+    'bookmark.export.failed': 'Export failed: {0}',
+    'bookmark.bar': 'Bookmarks Bar',
+    'weather.sunny': 'Sunny', 'weather.cloudy': 'Cloudy', 'weather.overcast': 'Overcast',
+    'weather.rain': 'Rain', 'weather.snow': 'Snow', 'weather.fog': 'Fog',
+    'weather.thunderstorm': 'Thunderstorm', 'weather.lightRain': 'Light Rain',
+    'weather.shower': 'Showers', 'weather.windy': 'Windy',
+    'search.engine.baidu': 'Baidu',
+    'settings.language.auto': 'Auto (follow browser)',
+    'backend.online': 'Backend service online',
+    'backend.offline': 'Backend service offline',
+  }
+};
+
+let _locale = 'zh';
+
+function detectLocale() {
+  const lang = navigator.language || (navigator.languages && navigator.languages[0]) || 'zh';
+  return lang.startsWith('zh') ? 'zh' : 'en';
+}
+
+async function initLocale() {
+  const stored = localStorage.getItem('locale') || 'auto';
+  _locale = stored === 'auto' ? detectLocale() : stored;
+}
+
+function t(key, ...args) {
+  const dict = I18N[_locale] || I18N.zh;
+  let s = dict[key] || I18N.zh[key] || key;
+  args.forEach((arg, i) => { s = s.replace(`{${i}}`, arg); });
+  return s;
+}
+
+function getLocale() { return _locale; }
+function setLocale(locale) { _locale = locale; }
+function getDateLocale() { return _locale === 'zh' ? 'zh-CN' : 'en-US'; }
+
+function getWeatherDesc(code) {
+  const codes = {
+    0:'weather.sunny', 1:'weather.sunny', 2:'weather.cloudy', 3:'weather.cloudy',
+    45:'weather.fog', 48:'weather.fog',
+    51:'weather.lightRain', 53:'weather.lightRain', 55:'weather.lightRain',
+    61:'weather.rain', 63:'weather.rain', 65:'weather.rain',
+    71:'weather.snow', 73:'weather.snow', 75:'weather.snow',
+    80:'weather.shower', 81:'weather.shower', 82:'weather.shower',
+    95:'weather.thunderstorm', 96:'weather.thunderstorm', 99:'weather.thunderstorm'
+  };
+  return t(codes[code] || 'weather.sunny');
+}
+
+const _weatherIcons = {
+  '晴': '☀️', '多云': '⛅', '阴': '☁️', '雨': '🌧️',
+  '雪': '❄️', '雾': '🌫️', '雷阵雨': '⛈️', '小雨': '🌦️', '大风': '💨',
+  'Sunny': '☀️', 'Cloudy': '⛅', 'Overcast': '☁️', 'Rain': '🌧️',
+  'Snow': '❄️', 'Fog': '🌫️', 'Thunderstorm': '⛈️', 'Light Rain': '🌦️', 'Showers': '🌦️', 'Windy': '💨'
+};
+
+function getWeatherIcon(desc) {
+  for (const key in _weatherIcons) {
+    if (desc.includes(key)) return _weatherIcons[key];
+  }
+  return '🌤️';
+}
+
+function applyI18n() {
+  document.documentElement.lang = _locale === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+}
+
 // === 设备ID管理 ===
 function getDeviceId() {
   let deviceId = localStorage.getItem('bookmarks_device_id');
@@ -822,10 +1008,11 @@ function updateClock() {
   document.getElementById('clock').textContent = `${h}:${m}`;
 
   const {lunar, term} = getLunarInfo(now);
-  const dateStr = now.toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'});
-  document.getElementById('date').textContent = lunar ? `${dateStr} ${lunar}` : dateStr;
+  const dateLocale = getDateLocale();
+  const dateStr = now.toLocaleDateString(dateLocale, {year: 'numeric', month: 'long', day: 'numeric'});
+  document.getElementById('date').textContent = (lunar && getLocale() === 'zh') ? `${dateStr} ${lunar}` : dateStr;
 
-  const weekday = now.toLocaleDateString('zh-CN', {weekday: 'short'});
+  const weekday = now.toLocaleDateString(dateLocale, {weekday: 'short'});
   document.getElementById('weekday').textContent = term ? `${weekday} ${term}` : weekday;
 }
 
@@ -923,24 +1110,10 @@ function updateThemeIcon(theme) {
 }
 
 // === 天气 ===
-const weatherIcons = {
-  '晴': '☀️', '多云': '⛅', '阴': '☁️', '雨': '🌧️',
-  '雪': '❄️', '雾': '🌫️', '雷阵雨': '⛈️', '小雨': '🌦️', '大风': '💨'
-};
-
-function getWeatherIcon(desc) {
-  for (const key in weatherIcons) if (desc.includes(key)) return weatherIcons[key];
-  return '🌤️';
-}
-
-function getWeatherDesc(code) {
-  const codes = {0:'晴',1:'晴',2:'多云',3:'多云',45:'雾',48:'雾',51:'小雨',53:'小雨',55:'小雨',61:'雨',63:'雨',65:'雨',71:'雪',73:'雪',75:'雪',80:'阵雨',81:'阵雨',82:'阵雨',95:'雷阵雨',96:'雷阵雨',99:'雷阵雨'};
-  return codes[code] || '晴';
-}
-
 async function fetchWeather(city) {
   try {
-    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh`);
+    const lang = getLocale();
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${lang}`);
     const geoData = await geoRes.json();
     if (!geoData.results || geoData.results.length === 0) return null;
     const {latitude, longitude, name} = geoData.results[0];
@@ -1038,6 +1211,15 @@ function loadFavicons() {
   icons.forEach(el => observer.observe(el));
 }
 
+// 后台服务状态指示
+function setBackendStatus(online) {
+  const el = document.getElementById('backendStatus');
+  if (!el) return;
+  el.classList.remove('online', 'offline');
+  el.classList.add(online ? 'online' : 'offline');
+  el.title = online ? t('backend.online') : t('backend.offline');
+}
+
 // === 数据加载 ===
 async function loadData() {
   try {
@@ -1045,10 +1227,12 @@ async function loadData() {
     if (resp.ok) {
       const data = await resp.json();
       renderData(data);
+      setBackendStatus(true);
       return;
     }
   } catch (e) { console.error('从后端获取数据失败:', e); }
-  document.getElementById('content').innerHTML = '<div class="empty">无法连接后端服务</div>';
+  setBackendStatus(false);
+  document.getElementById('content').innerHTML = `<div class="empty">${t('error.noBackend.web')}</div>`;
 }
 
 // === 最近使用（后端API） ===
@@ -1086,7 +1270,7 @@ async function getRecentVisited() {
 function renderTopVisited(items) {
   if (!items || items.length === 0) return '';
   let html = '<div class="top-visited">';
-  html += '<div class="top-visited-title">最近使用</div>';
+  html += `<div class="top-visited-title">${t('recent.title')}</div>`;
   html += '<div class="top-visited-grid">';
   items.forEach(item => {
     // 最近使用只显示书签名，去掉「目录名 - 」前缀
@@ -1135,8 +1319,8 @@ function renderData(data) {
   allCategories = data.categories || [];
   _validCategories = null;
   const total = data.total || 0;
-  const updateTime = data.last_update ? new Date(data.last_update * 1000).toLocaleString('zh-CN') : '';
-  if (updateTime) document.getElementById('updateInfo').textContent = `${total} 书签 | 更新于 ${updateTime}`;
+  const updateTime = data.last_update ? new Date(data.last_update * 1000).toLocaleString(getDateLocale()) : '';
+  if (updateTime) document.getElementById('updateInfo').textContent = t('info.updateInfo', total, updateTime);
   if (isSearchMode) return;
   renderMainView();
 }
@@ -1154,7 +1338,7 @@ function renderMainView() {
     html += `<div class="cat-card ${isActive ? 'active' : ''}" data-cat="${escAttr(cat.category)}" data-idx="${i}">
       <div class="cat-icon ico-${i % 8}">${catIcon(i)}</div>
       <div class="cat-name">${escHtml(shortName)}</div>
-      <div class="cat-count">${cat.items.length} 书签</div>
+      <div class="cat-count">${cat.items.length} ${t('bookmark.count')}</div>
     </div>`;
   });
   html += '</div>';
@@ -1190,7 +1374,7 @@ function renderBookmarkPanel(categoryName, validCategories) {
   html += `<span class="panel-icon ico-${catIdx % 8}">${catIcon(catIdx)}</span>`;
   html += `<span class="panel-title">${escHtml(shortName)}</span>`;
   if (parentPath) html += `<span class="panel-path">${escHtml(parentPath)}</span>`;
-  html += `<span class="panel-count">${cat.items.length} 个书签</span>`;
+  html += `<span class="panel-count">${cat.items.length} ${t('bookmark.count.full')}</span>`;
   html += '<div class="panel-close" data-action="close-panel">✕</div>';
   html += '</div>';
 
@@ -1394,7 +1578,7 @@ async function performSearch(keyword) {
   const searchUrl = SEARCH_ENGINE.url + encodeURIComponent(keyword);
   let html = `<a class="search-engine-hint" href="${escAttr(searchUrl)}" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/></svg>
-    在 ${escHtml(SEARCH_ENGINE.name)} 中搜索「${escHtml(displayKeyword)}」
+    ${t('search.engine.hint', escHtml(SEARCH_ENGINE.name), escHtml(displayKeyword))}
   </a>`;
 
   // 分类搜索结果：目录名匹配 vs 书签名/URL匹配
@@ -1426,7 +1610,7 @@ async function performSearch(keyword) {
       html += `<div class="cat-card" data-cat="${escAttr(cat.category)}" data-idx="${idx}">
         <div class="cat-icon ico-${idx % 8}">${catIcon(idx)}</div>
         <div class="cat-name">${escHtml(shortName)}</div>
-        <div class="cat-count">${cat.items.length} 书签</div>
+        <div class="cat-count">${cat.items.length} ${t('bookmark.count')}</div>
       </div>`;
     });
     html += '</div>';
@@ -1455,7 +1639,7 @@ async function performSearch(keyword) {
     html += '</div></div>';
   }
 
-  if (!found) html += '<div class="empty">未找到匹配的书签</div>';
+  if (!found) html += `<div class="empty">${t('search.noResults')}</div>`;
   document.getElementById('content').innerHTML = html;
   loadFavicons();
 }
@@ -1482,7 +1666,7 @@ function toggleSearchFolder(catName, catIdx, isActive) {
     html += '<div class="bookmark-panel-header">';
     html += `<span class="panel-icon ico-${catIdx % 8}">${catIcon(catIdx)}</span>`;
     html += `<span class="panel-title">${escHtml(shortName)}</span>`;
-    html += `<span class="panel-count">${cat.items.length} 个书签</span>`;
+    html += `<span class="panel-count">${cat.items.length} ${t('bookmark.count.full')}</span>`;
     html += '</div>';
     html += '<div class="bookmark-grid">';
     cat.items.forEach(item => {
@@ -1558,7 +1742,7 @@ document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 function saveRemoteToLocal() {
   const remoteCats = allCategories.filter(c => c.category !== '__root_bookmarks__');
   if (!remoteCats.length) {
-    showToast('没有远程书签可导出');
+    showToast(t('bookmark.export.none'));
     return;
   }
 
@@ -1577,7 +1761,7 @@ function saveRemoteToLocal() {
     let html = '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<!-- This is an automatically generated file.\n     It will be read and overwritten.\n     DO NOT EDIT! -->\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Bookmarks</TITLE>\n<H1>Bookmarks</H1>\n<DL><p>\n';
 
     // 嵌套在书签栏文件夹下，与插件保存到书签栏一致
-    html += '    <DT><H3>书签栏</H3>\n    <DL><p>\n';
+    html += `    <DT><H3>${t('bookmark.bar')}</H3>\n    <DL><p>\n`;
 
     const exportUrls = new Set();
     let total = 0, dupSkipped = 0;
@@ -1618,11 +1802,11 @@ function saveRemoteToLocal() {
     URL.revokeObjectURL(url);
 
     const msg = dupSkipped > 0
-      ? `已导出 ${total} 个书签（跳过 ${dupSkipped} 个重复），请在浏览器中导入`
-      : `已导出 ${total} 个书签，请在浏览器中导入`;
+      ? t('bookmark.export.complete.dup', total, dupSkipped)
+      : t('bookmark.export.complete', total);
     showToast(msg);
   } catch (e) {
-    showToast('导出失败：' + (e.message || e));
+    showToast(t('bookmark.export.failed', (e.message || e)));
   } finally {
     btn.classList.remove('saving');
   }
@@ -1640,14 +1824,28 @@ function showToast(msg) {
 
 document.getElementById('saveBmBtn').addEventListener('click', saveRemoteToLocal);
 
+// 语言切换
+document.getElementById('localeSelect').addEventListener('change', (e) => {
+  const locale = e.target.value;
+  localStorage.setItem('locale', locale);
+  setLocale(locale === 'auto' ? detectLocale() : locale);
+  applyI18n();
+  updateClock();
+  renderMainView();
+});
+
 // === 初始化 ===
-initTheme();
-updateClock();
-setInterval(updateClock, 10000);
-setupSearch();
-loadData();
-initWeather();
-loadBingWallpaper();
+initLocale().then(() => {
+  document.getElementById('localeSelect').value = localStorage.getItem('locale') || 'auto';
+  applyI18n();
+  initTheme();
+  updateClock();
+  setInterval(updateClock, 10000);
+  setupSearch();
+  loadData();
+  initWeather();
+  loadBingWallpaper();
+});
 </script>
 </body>
 </html>

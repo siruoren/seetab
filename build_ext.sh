@@ -26,7 +26,7 @@ COMMON_FILES=(
   newtab.html newtab.css newtab.js
   options.html options.css options.js
   background.js
-  pinyin.js
+  i18n.js pinyin.js
   icons/
 )
 rm -rf "$DIST_DIR"
@@ -56,6 +56,7 @@ cp "$EXT_DIR/options.css" "$TMP_DIR/"
 cp "$EXT_DIR/options.js" "$TMP_DIR/"
 cp "$EXT_DIR/background.js" "$TMP_DIR/"
 cp "$EXT_DIR/background-firefox.js" "$TMP_DIR/"
+cp "$EXT_DIR/i18n.js" "$TMP_DIR/"
 cp "$EXT_DIR/pinyin.js" "$TMP_DIR/"
 cp -r "$EXT_DIR/icons" "$TMP_DIR/"
 cp "$EXT_DIR/manifest-firefox.json" "$TMP_DIR/manifest.json"
