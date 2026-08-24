@@ -709,27 +709,28 @@ body > .save-bm-toast {
 /* 空状态 */
 .empty { text-align: center; padding: 40px; color: var(--text2); font-size: 14px; }
 
-/* 更新信息 - 固定底部居中 */
-.update-info {
+/* 底部信息栏 - 状态图标 + 更新信息，居中并排 */
+.footer-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  font-size: 11px;
-  color: var(--text2);
-  opacity: 0.6;
-  text-align: center;
-  padding: 8px 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px 12px;
   z-index: 50;
   pointer-events: none;
 }
 
-/* 后台服务状态指示器 - 固定右下角 */
+.update-info {
+  font-size: 11px;
+  color: var(--text2);
+  opacity: 0.6;
+}
+
 .backend-status {
-  position: fixed;
-  bottom: 8px;
-  right: 12px;
-  z-index: 50;
   display: flex;
   align-items: center;
   gap: 4px;

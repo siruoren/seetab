@@ -108,9 +108,7 @@ function getLunarInfo(date) {
 
 // === 主题 ===
 async function initTheme() {
-  const result = await new Promise(resolve => {
-    chrome.storage.local.get({ theme: 'dark' }, resolve);
-  });
+  const result = await getStorage({ theme: 'dark' });
   document.documentElement.setAttribute('data-theme', result.theme);
   updateThemeIcon(result.theme);
 }
@@ -150,9 +148,7 @@ function updateWeatherDisplay(data) {
 }
 
 async function initWeather() {
-  const result = await new Promise(resolve => {
-    chrome.storage.local.get({ weatherCity: '' }, resolve);
-  });
+  const result = await getStorage({ weatherCity: '' });
   if (result.weatherCity) {
     const data = await fetchWeather(result.weatherCity);
     if (data) updateWeatherDisplay(data);
@@ -165,9 +161,7 @@ async function toggleCityInput() {
     input.classList.remove('show');
   } else {
     input.classList.add('show');
-    const result = await new Promise(resolve => {
-      chrome.storage.local.get({ weatherCity: '' }, resolve);
-    });
+    const result = await getStorage({ weatherCity: '' });
     input.value = result.weatherCity;
     input.focus();
   }
@@ -187,6 +181,22 @@ function handleCityInput(event) {
 // === 工具函数 ===
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 const escAttr = escHtml;
+
+// 统一 chrome.storage.local.get 的 Promise 包装
+function getStorage(defaults) {
+  return new Promise(resolve => chrome.storage.local.get(defaults, resolve));
+}
+
+// 取目录短名（最后一段 " / " 之后的部分）
+function catShortName(category) {
+  return category.split(' / ').pop();
+}
+
+// 去掉书签名中的「目录 - 」前缀
+function stripCatPrefix(title) {
+  const dashIdx = title.indexOf(' - ');
+  return dashIdx > 0 ? title.substring(dashIdx + 3) : title;
+}
 
 function cleanTitle(title) {
   if (!title) return '';
@@ -236,9 +246,7 @@ function loadFavicons() {
 
 // === 数据加载 ===
 function loadFromCache() {
-  return new Promise(resolve => {
-    chrome.storage.local.get(['bookmarksCache'], result => resolve(result.bookmarksCache || null));
-  });
+  return getStorage(['bookmarksCache']).then(r => r.bookmarksCache || null);
 }
 
 function saveToCache(data) { chrome.storage.local.set({ bookmarksCache: data }); }
@@ -266,7 +274,7 @@ function proxyFetch(url, options) {
 }
 
 async function fetchFromBackend() {
-  const config = await new Promise(resolve => chrome.storage.local.get(['serverUrl', 'apiPassword'], resolve));
+  const config = await getStorage(['serverUrl', 'apiPassword']);
   if (!config.serverUrl) return null;
 
   const serverUrl = toFetchUrl(config.serverUrl);
@@ -335,9 +343,7 @@ async function renderDataWithVisited(data) {
 // === 最近使用 ===
 async function recordVisit(url, title) {
   if (!url) return;
-  const result = await new Promise(resolve => {
-    chrome.storage.local.get({ visitCounts: {} }, resolve);
-  });
+  const result = await getStorage({ visitCounts: {} });
   result.visitCounts[url] = {
     title: title || url,
     lastVisit: Date.now()
@@ -346,18 +352,14 @@ async function recordVisit(url, title) {
 }
 
 async function removeVisited(url) {
-  const result = await new Promise(resolve => {
-    chrome.storage.local.get({ visitCounts: {} }, resolve);
-  });
+  const result = await getStorage({ visitCounts: {} });
   delete result.visitCounts[url];
   chrome.storage.local.set({ visitCounts: result.visitCounts });
   refreshTopVisited();
 }
 
 async function getRecentVisited() {
-  const result = await new Promise(resolve => {
-    chrome.storage.local.get({ visitCounts: {} }, resolve);
-  });
+  const result = await getStorage({ visitCounts: {} });
   return Object.entries(result.visitCounts)
     .map(([url, data]) => ({ url, title: data.title, lastVisit: data.lastVisit || 0 }))
     .sort((a, b) => b.lastVisit - a.lastVisit)
@@ -371,9 +373,7 @@ function renderTopVisited(items) {
   html += '<div class="top-visited-grid">';
   items.forEach(item => {
     // 最近使用只显示书签名，去掉「目录名 - 」前缀
-    let name = cleanTitle(item.title);
-    const dashIdx = name.indexOf(' - ');
-    if (dashIdx > 0) name = name.substring(dashIdx + 3);
+    const name = stripCatPrefix(cleanTitle(item.title));
     const t = escHtml(name);
     html += `<a class="top-visited-item ${isShakeMode ? 'shake' : ''}" href="${escAttr(item.url)}" target="_blank" rel="noopener" data-url="${escAttr(item.url)}">
       ${isShakeMode ? '<span class="remove-badge" data-action="remove-visited">✕</span>' : ''}
@@ -439,7 +439,7 @@ function getCategories() {
   if (!_localBookmarksLoaded || _localBookmarkCategories.length === 0) return serverCats;
 
   // 合并：按显示的目录名（短名）去重合并条目
-  const shortName = c => c.category.split(' / ').pop();
+  const shortName = c => catShortName(c.category);
   const merged = serverCats.map(c => ({ ...c, items: [...c.items] }));
   for (const localCat of _localBookmarkCategories) {
     const existing = merged.find(c => shortName(c) === shortName(localCat));
@@ -478,7 +478,7 @@ function renderMainView(recentItems) {
   }
   html += '<div class="category-grid">';
   validCategories.forEach((cat, i) => {
-    const shortName = cat.category.split(' / ').pop();
+    const shortName = catShortName(cat.category);
     const isActive = activeCat === cat.category;
     html += `<div class="cat-card ${isActive ? 'active' : ''}" data-cat="${escAttr(cat.category)}" data-idx="${i}">
       <div class="cat-icon ico-${i % 8}">${catIcon(i)}</div>
@@ -515,7 +515,7 @@ function renderBookmarkPanel(categoryName, validCategories) {
   const cat = validCategories[catIdx];
   if (!cat) return '';
 
-  const shortName = categoryName.split(' / ').pop();
+  const shortName = catShortName(categoryName);
   const parentPath = categoryName.includes(' / ') ? categoryName.substring(0, categoryName.lastIndexOf(' / ')) : '';
 
   let html = '<div class="bookmark-panel">';
@@ -615,9 +615,7 @@ function bindContentEvents() {
     // 书签点击 → 记录访问（只存纯书签名，去掉目录前缀）
     const bmItem = e.target.closest('a.bookmark-item[href]');
     if (bmItem) {
-      let bmTitle = bmItem.querySelector('.bm-title')?.textContent || '';
-      const dashIdx = bmTitle.indexOf(' - ');
-      if (dashIdx > 0) bmTitle = bmTitle.substring(dashIdx + 3);
+      const bmTitle = stripCatPrefix(bmItem.querySelector('.bm-title')?.textContent || '');
       recordVisit(bmItem.href, bmTitle);
     }
 
@@ -680,9 +678,7 @@ const SEARCH_ENGINES = {
 let currentSearchEngine = 'bing';
 
 async function loadSearchEngine() {
-  const config = await new Promise(resolve => {
-    chrome.storage.local.get({ searchEngine: 'bing' }, resolve);
-  });
+  const config = await getStorage({ searchEngine: 'bing' });
   currentSearchEngine = config.searchEngine;
 }
 
@@ -765,7 +761,7 @@ function performSearch(keyword) {
   const itemMatched = [];  // 书签条目匹配的分类（目录名不匹配）
 
   categories.forEach((cat, idx) => {
-    const shortName = cat.category.split(' / ').pop();
+    const shortName = catShortName(cat.category);
     const isCatMatch = matchAll(shortName, keywords) || matchAll(cat.category, keywords);
 
     const matchedItems = cat.items.filter(item =>
@@ -785,7 +781,7 @@ function performSearch(keyword) {
   if (catMatched.length > 0) {
     html += '<div class="category-grid">';
     catMatched.forEach(({ cat, idx }) => {
-      const shortName = cat.category.split(' / ').pop();
+      const shortName = catShortName(cat.category);
       html += `<div class="cat-card" data-cat="${escAttr(cat.category)}" data-idx="${idx}">
         <div class="cat-icon ico-${idx % 8}">${catIcon(idx)}</div>
         <div class="cat-name">${escHtml(shortName)}</div>
@@ -810,10 +806,10 @@ function performSearch(keyword) {
     html += '<div class="search-matched-list">';
     html += '<div class="bookmark-grid">';
     allMatchedItems.forEach(({ item, cat }) => {
-      const catShortName = cat.category.split(' / ').pop();
+      const shortName = catShortName(cat.category);
       html += `<a class="bookmark-item" href="${escAttr(item.url)}" target="_blank" rel="noopener">
         ${bmIconHtml(item.url, item.title)}
-        <div class="bm-info"><div class="bm-title">${escHtml(catShortName)} - ${escHtml(cleanTitle(item.title))}</div><div class="bm-url">${escHtml(item.url)}</div></div>
+        <div class="bm-info"><div class="bm-title">${escHtml(shortName)} - ${escHtml(cleanTitle(item.title))}</div><div class="bm-url">${escHtml(item.url)}</div></div>
       </a>`;
     });
     html += '</div></div>';
@@ -841,7 +837,7 @@ function toggleSearchFolder(catName, catIdx, isActive) {
     const cat = getCategories().find(c => c.category === catName);
     if (!cat) return;
 
-    const shortName = cat.category.split(' / ').pop();
+    const shortName = catShortName(cat.category);
     let html = '<div class="bookmark-panel">';
     html += '<div class="bookmark-panel-header">';
     html += `<span class="panel-icon ico-${catIdx % 8}">${catIcon(catIdx)}</span>`;
@@ -952,7 +948,7 @@ async function saveRemoteToLocal() {
     let saved = 0, skipped = 0;
 
     for (const cat of remoteCats) {
-      const catName = cat.category.split(' / ').pop();
+      const catName = catShortName(cat.category);
       // 先统计该目录下有多少新书签需要添加
       const newItems = cat.items.filter(item => !localUrls.has(normUrl(item.url)));
       if (newItems.length === 0) { skipped += cat.items.length; continue; }
@@ -966,9 +962,7 @@ async function saveRemoteToLocal() {
 
       // 逐条添加书签（标题去掉目录前缀）
       for (const item of newItems) {
-        let bmTitle = item.title || '';
-        const dashIdx = bmTitle.indexOf(' - ');
-        if (dashIdx > 0) bmTitle = bmTitle.substring(dashIdx + 3);
+        const bmTitle = stripCatPrefix(item.title || '');
         const created = await bmCall(chrome.bookmarks.create, { parentId: folder.id, title: bmTitle, url: item.url });
         localUrls.add(normUrl(created.url || item.url));
         saved++;
@@ -1014,9 +1008,7 @@ document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 // === Bing 每日壁纸 ===
 async function loadBingWallpaper() {
   // 读取设置，默认启用
-  const config = await new Promise(resolve => {
-    chrome.storage.local.get({ enableWallpaper: true }, resolve);
-  });
+  const config = await getStorage({ enableWallpaper: true });
 
   if (!config.enableWallpaper) {
     removeWallpaper();
