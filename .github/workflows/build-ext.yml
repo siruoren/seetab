@@ -52,7 +52,7 @@ jobs:
           cp extension/newtab.html extension/newtab.css extension/newtab.js "$CHROME_DIR/"
           cp extension/options.html extension/options.css extension/options.js "$CHROME_DIR/"
           cp extension/background.js "$CHROME_DIR/"
-          cp extension/pinyin.js "$CHROME_DIR/"
+          cp extension/i18n.js extension/pinyin.js "$CHROME_DIR/"
           cp -r extension/icons "$CHROME_DIR/"
 
           cd "$CHROME_DIR"
@@ -68,7 +68,7 @@ jobs:
           cp extension/options.html extension/options.css extension/options.js "$XPI_DIR/"
           cp extension/background.js "$XPI_DIR/"
           cp extension/background-firefox.js "$XPI_DIR/"
-          cp extension/pinyin.js "$XPI_DIR/"
+          cp extension/i18n.js extension/pinyin.js "$XPI_DIR/"
           cp -r extension/icons "$XPI_DIR/"
 
           # 每次构建随机生成 gecko id

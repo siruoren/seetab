@@ -3,91 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SeeTab - 设置</title>
+<title>SeeTab - Settings</title>
 <link rel="stylesheet" href="options.css">
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>SeeTab 设置</h1>
+    <h1 data-i18n="settings.header">SeeTab 设置</h1>
   </div>
 
   <div class="card">
-    <h2>后端服务配置</h2>
+    <h2 data-i18n="settings.backend">后端服务配置</h2>
 
     <div class="form-group">
-      <label for="serverUrl">服务地址</label>
-      <input type="text" id="serverUrl" placeholder="http://192.168.31.120:5005">
-      <small>后端书签服务的完整地址（含端口），不带末尾斜杠</small>
+      <label for="serverUrl" data-i18n="settings.serverUrl">服务地址</label>
+      <input type="text" id="serverUrl" data-i18n-placeholder="settings.serverUrl.placeholder" placeholder="http://192.168.31.120:5005">
+      <small data-i18n="settings.serverUrl.desc">后端书签服务的完整地址（含端口），不带末尾斜杠</small>
     </div>
 
     <div class="form-group">
-      <label for="apiPassword">访问密码</label>
+      <label for="apiPassword" data-i18n="settings.apiPassword">访问密码</label>
       <div class="password-wrap">
-        <input type="password" id="apiPassword" placeholder="可选，后端配置的 API Key">
-        <button class="toggle-pwd" id="togglePwd" title="显示/隐藏">👁</button>
+        <input type="password" id="apiPassword" data-i18n-placeholder="settings.apiPassword.placeholder" placeholder="可选，后端配置的 API Key">
+        <button class="toggle-pwd" id="togglePwd" data-i18n-title="settings.togglePassword" title="显示/隐藏">👁</button>
       </div>
-      <small>与后端 config.yml 中 api_key 对应，未设置则留空</small>
+      <small data-i18n="settings.apiPassword.desc">与后端 config.yml 中 api_key 对应，未设置则留空</small>
     </div>
 
     <div class="form-group">
-      <label for="updateInterval">更新间隔（分钟）</label>
+      <label for="updateInterval" data-i18n="settings.updateInterval">更新间隔（分钟）</label>
       <input type="number" id="updateInterval" min="1" max="1440" value="5">
-      <small>后台自动同步书签数据的时间间隔，最少 1 分钟</small>
+      <small data-i18n="settings.updateInterval.desc">后台自动同步书签数据的时间间隔，最少 1 分钟</small>
     </div>
   </div>
 
   <div class="card">
-    <h2>外观设置</h2>
+    <h2 data-i18n="settings.appearance">外观设置</h2>
 
     <div class="form-group">
-      <label for="theme">主题</label>
-      <select id="theme">
-        <option value="dark">暗色</option>
-        <option value="light">亮色</option>
+      <label for="locale" data-i18n="settings.language">显示语言</label>
+      <select id="locale">
+        <option value="auto" data-i18n="settings.language.auto">自动（跟随浏览器）</option>
+        <option value="zh" data-i18n="settings.language.zh">中文</option>
+        <option value="en" data-i18n="settings.language.en">English</option>
       </select>
-      <small>新标签页的明暗主题</small>
+      <small data-i18n="settings.language.desc">设置界面和导航页的显示语言</small>
     </div>
 
     <div class="form-group">
-      <label for="weatherCity">天气城市</label>
-      <input type="text" id="weatherCity" placeholder="如：北京、上海、Shenzhen">
-      <small>用于显示天气信息，留空则不显示</small>
+      <label for="theme" data-i18n="settings.theme">主题</label>
+      <select id="theme">
+        <option value="dark" data-i18n="settings.theme.dark">暗色</option>
+        <option value="light" data-i18n="settings.theme.light">亮色</option>
+      </select>
+      <small data-i18n="settings.theme.desc">新标签页的明暗主题</small>
     </div>
 
     <div class="form-group">
-      <label for="enableWallpaper">Bing 每日壁纸</label>
+      <label for="weatherCity" data-i18n="settings.weatherCity">天气城市</label>
+      <input type="text" id="weatherCity" data-i18n-placeholder="settings.weatherCity.placeholder" placeholder="如：北京、上海、Shenzhen">
+      <small data-i18n="settings.weatherCity.desc">用于显示天气信息，留空则不显示</small>
+    </div>
+
+    <div class="form-group">
+      <label for="enableWallpaper" data-i18n="settings.wallpaper">Bing 每日壁纸</label>
       <label class="switch">
         <input type="checkbox" id="enableWallpaper" checked>
         <span class="slider"></span>
       </label>
-      <small>启用后将使用 Bing 每日壁纸作为背景，禁用则使用默认纯色背景</small>
+      <small data-i18n="settings.wallpaper.desc">启用后将使用 Bing 每日壁纸作为背景，禁用则使用默认纯色背景</small>
     </div>
 
     <div class="form-group">
-      <label for="searchEngine">搜索引擎</label>
+      <label for="searchEngine" data-i18n="settings.searchEngine">搜索引擎</label>
       <select id="searchEngine">
         <option value="bing">Bing</option>
         <option value="google">Google</option>
-        <option value="baidu">百度</option>
+        <option value="baidu" data-i18n="search.engine.baidu">百度</option>
       </select>
-      <small>搜索框回车或点击搜索按钮时使用的搜索引擎</small>
+      <small data-i18n="settings.searchEngine.desc">搜索框回车或点击搜索按钮时使用的搜索引擎</small>
     </div>
   </div>
 
   <div class="card">
-    <h2>同步状态</h2>
+    <h2 data-i18n="settings.syncStatus">同步状态</h2>
     <div class="status-grid">
       <div class="status-item">
-        <span class="status-label">配置状态</span>
-        <span class="status-value" id="statusConfig">未配置</span>
+        <span class="status-label" data-i18n="settings.configStatus">配置状态</span>
+        <span class="status-value" id="statusConfig" data-i18n="settings.notConfigured">未配置</span>
       </div>
       <div class="status-item">
-        <span class="status-label">缓存书签数</span>
+        <span class="status-label" data-i18n="settings.cacheCount">缓存书签数</span>
         <span class="status-value" id="statusTotal">-</span>
       </div>
       <div class="status-item">
-        <span class="status-label">上次同步</span>
+        <span class="status-label" data-i18n="settings.lastSync">上次同步</span>
         <span class="status-value" id="statusLastFetch">-</span>
       </div>
     </div>
@@ -99,13 +109,14 @@
   <div class="bottom-bar-inner">
     <div class="status" id="status"></div>
     <div class="bottom-actions">
-      <button class="btn btn-secondary" id="testBtn">测试连接</button>
-      <button class="btn btn-secondary" id="syncBtn">立即同步</button>
-      <button class="btn btn-primary" id="saveBtn">保存配置</button>
+      <button class="btn btn-secondary" id="testBtn" data-i18n="settings.testConnection">测试连接</button>
+      <button class="btn btn-secondary" id="syncBtn" data-i18n="settings.syncNow">立即同步</button>
+      <button class="btn btn-primary" id="saveBtn" data-i18n="settings.saveConfig">保存配置</button>
     </div>
   </div>
 </div>
 
+<script src="i18n.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

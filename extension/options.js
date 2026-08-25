@@ -7,22 +7,22 @@ const DEFAULTS = {
   enableWallpaper: true,
   searchEngine: 'bing',
   theme: 'dark',
-  weatherCity: ''
+  weatherCity: '',
+  locale: 'auto'
 };
 
 // 内部请求时将协议转为浏览器 fetch 支持的 http/https
-// 用户侧始终保留原始输入（如 tcp://）
 function toFetchUrl(url) {
   let u = url.replace(/^tcp:\/\//i, 'http://');
   if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
   return u;
 }
 
-// 通过 background 代理 fetch（Firefox MV3 扩展页面直接 fetch 会 NetworkError）
+// 通过 background 代理 fetch
 function proxyFetch(url, options) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ type: 'proxyFetch', url, options }, resp => {
-      if (!resp) { reject(new Error('background 无响应')); return; }
+      if (!resp) { reject(new Error(t('background.noResponse'))); return; }
       if (resp.error) { reject(new Error(resp.error)); return; }
       resolve({
         ok: resp.ok,
@@ -34,7 +34,7 @@ function proxyFetch(url, options) {
   });
 }
 
-// 验证地址格式是否合法（支持 tcp/http/https/无协议）
+// 验证地址格式
 function isValidUrl(url) {
   const httpUrl = toFetchUrl(url);
   try { new URL(httpUrl); return true; } catch { return false; }
@@ -50,6 +50,7 @@ function loadConfig() {
     document.getElementById('searchEngine').value = config.searchEngine;
     document.getElementById('theme').value = config.theme;
     document.getElementById('weatherCity').value = config.weatherCity;
+    document.getElementById('locale').value = config.locale;
     updateStatus();
   });
 }
@@ -63,25 +64,25 @@ function saveConfig() {
   const searchEngine = document.getElementById('searchEngine').value;
   const theme = document.getElementById('theme').value;
   const weatherCity = document.getElementById('weatherCity').value.trim();
+  const locale = document.getElementById('locale').value;
 
   if (!serverUrl) {
-    showStatus('请输入服务地址', 'error');
+    showStatus(t('settings.error.serverUrlRequired'), 'error');
     return;
   }
 
   if (!isValidUrl(serverUrl)) {
-    showStatus('服务地址格式不正确', 'error');
+    showStatus(t('settings.error.serverUrlInvalid'), 'error');
     return;
   }
 
   if (updateInterval < 1 || updateInterval > 1440) {
-    showStatus('更新间隔需在 1-1440 分钟之间', 'error');
+    showStatus(t('settings.error.intervalRange'), 'error');
     return;
   }
 
-  // 保存原始输入，不做转换
-  chrome.storage.local.set({ serverUrl, apiPassword, updateInterval, enableWallpaper, searchEngine, theme, weatherCity }, () => {
-    showStatus('配置已保存', 'success');
+  chrome.storage.local.set({ serverUrl, apiPassword, updateInterval, enableWallpaper, searchEngine, theme, weatherCity, locale }, () => {
+    showStatus(t('settings.saved'), 'success');
     updateStatus();
   });
 }
@@ -92,13 +93,13 @@ async function testConnection() {
   const apiPassword = document.getElementById('apiPassword').value;
 
   if (!serverUrl) {
-    showStatus('请先输入服务地址', 'error');
+    showStatus(t('settings.error.serverUrlFirst'), 'error');
     return;
   }
 
   const fetchUrl = toFetchUrl(serverUrl);
 
-  showStatus('正在测试连接...', '');
+  showStatus(t('settings.testing'), '');
   const statusEl = document.getElementById('status');
   statusEl.className = 'status';
 
@@ -108,47 +109,45 @@ async function testConnection() {
   }
 
   try {
-    // 先测试轻量接口（通过 background 代理）
     const resp = await proxyFetch(`${fetchUrl}/api/update_time`, { headers });
 
     if (resp.ok) {
-      // 再获取书签数量
       const bmResp = await proxyFetch(`${fetchUrl}/api/bookmarks`, { headers });
       if (bmResp.ok) {
         const data = await bmResp.json();
-        showStatus(`连接成功! 共 ${data.total || 0} 个书签`, 'success');
+        showStatus(t('settings.connectionSuccess', data.total || 0), 'success');
       } else if (bmResp.status === 401) {
-        showStatus('认证失败: 密码不正确', 'error');
+        showStatus(t('settings.error.authFailed'), 'error');
       } else {
-        showStatus(`连接成功（服务器可达），但获取书签失败: HTTP ${bmResp.status}`, 'error');
+        showStatus(t('settings.error.fetchFailed', bmResp.status), 'error');
       }
     } else if (resp.status === 401) {
-      showStatus('认证失败: 密码不正确', 'error');
+      showStatus(t('settings.error.authFailed'), 'error');
     } else if (resp.status === 501) {
-      showStatus('服务器返回 501：请确认后端服务运行正常，且 FRP 代理类型为 http 而非 tcp', 'error');
+      showStatus(t('settings.error.server501'), 'error');
     } else {
-      showStatus(`连接失败: HTTP ${resp.status}`, 'error');
+      showStatus(t('settings.error.httpFailed', resp.status), 'error');
     }
   } catch (e) {
     if (e.name === 'TimeoutError') {
-      showStatus('连接超时，请检查地址是否正确、服务是否运行', 'error');
+      showStatus(t('settings.error.timeout'), 'error');
     } else if (e.message && (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))) {
-      showStatus('网络错误：请检查地址是否可达，若使用 FRP 隧道请确认代理类型为 http', 'error');
+      showStatus(t('settings.error.network'), 'error');
     } else {
-      showStatus(`连接失败: ${e.message}`, 'error');
+      showStatus(t('settings.error.connectionFailed', e.message), 'error');
     }
   }
 }
 
 // 立即同步
 function triggerSync() {
-  showStatus('同步中...', 'success');
+  showStatus(t('settings.syncing'), 'success');
   chrome.runtime.sendMessage({ type: 'triggerSync' }, resp => {
     if (resp && resp.ok) {
-      showStatus('同步成功', 'success');
+      showStatus(t('settings.syncSuccess'), 'success');
       updateStatus();
     } else {
-      showStatus('同步请求失败', 'error');
+      showStatus(t('settings.syncFailed'), 'error');
     }
   });
 }
@@ -162,19 +161,19 @@ function updateStatus() {
     const totalEl = document.getElementById('statusTotal');
     const fetchEl = document.getElementById('statusLastFetch');
 
-    configEl.textContent = status.configured ? '已配置' : '未配置';
+    configEl.textContent = status.configured ? t('settings.configured') : t('settings.notConfigured');
     configEl.style.color = status.configured ? '#2ecc71' : '#e74c3c';
 
-    totalEl.textContent = status.total > 0 ? `${status.total} 个` : '-';
+    totalEl.textContent = status.total > 0 ? `${status.total}` : '-';
 
     if (status.lastUpdate > 0) {
       const d = new Date(status.lastUpdate * 1000);
-      fetchEl.textContent = d.toLocaleString('zh-CN');
+      fetchEl.textContent = d.toLocaleString(getDateLocale());
     } else if (status.lastFetch > 0) {
       const d = new Date(status.lastFetch);
-      fetchEl.textContent = d.toLocaleString('zh-CN');
+      fetchEl.textContent = d.toLocaleString(getDateLocale());
     } else {
-      fetchEl.textContent = '从未同步';
+      fetchEl.textContent = t('settings.neverSynced');
     }
   });
 }
@@ -199,10 +198,22 @@ document.getElementById('togglePwd').addEventListener('click', () => {
   }
 });
 
+// 语言切换实时生效
+document.getElementById('locale').addEventListener('change', (e) => {
+  const locale = e.target.value;
+  setLocale(locale === 'auto' ? detectLocale() : locale);
+  applyI18n();
+  document.documentElement.lang = getLocale() === 'zh' ? 'zh-CN' : 'en';
+});
+
 // 绑定按钮事件
 document.getElementById('saveBtn').addEventListener('click', saveConfig);
 document.getElementById('testBtn').addEventListener('click', testConnection);
 document.getElementById('syncBtn').addEventListener('click', triggerSync);
 
 // 初始化
-loadConfig();
+initLocale().then(() => {
+  applyI18n();
+  document.documentElement.lang = getLocale() === 'zh' ? 'zh-CN' : 'en';
+  loadConfig();
+});

@@ -11,15 +11,10 @@ function toFetchUrl(url) {
 }
 
 // 统一请求函数
-function httpGet(url, headers = {}) {
-  return new Promise((resolve, reject) => {
-    fetch(url, { headers }).then(async resp => {
-      const body = await resp.text();
-      resolve({ ok: resp.ok, status: resp.status, body });
-    }).catch(e => {
-      reject(e);
-    });
-  });
+async function httpGet(url, headers = {}) {
+  const resp = await fetch(url, { headers });
+  const body = await resp.text();
+  return { ok: resp.ok, status: resp.status, body };
 }
 
 // 安装/启动时初始化
