@@ -19,6 +19,15 @@ CHROME_USER_DATA="${CHROME_USER_DATA:-$HOME/Library/Application Support/Google/C
 CHROME_PROFILE="${CHROME_PROFILE:-Default}"
 INSTALL_CHROME="${INSTALL_CHROME:-0}"
 
+# 跨平台 sed -i（macOS BSD sed 需要空字符串参数，Linux GNU sed 不需要）
+sed_inplace() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
+  fi
+}
+
 # 从 version.txt 读取版本号
 VERSION=$(cat "$SCRIPT_DIR/version.txt" | tr -d '[:space:]')
 if [ -z "$VERSION" ]; then
@@ -28,7 +37,7 @@ fi
 echo "==> 版本号: ${VERSION}（来源: version.txt）"
 
 # 同步 manifest 版本号
-sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" "$EXT_DIR/manifest.json"
+sed_inplace "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" "$EXT_DIR/manifest.json"
 
 # === 1. 生成固定 .pem 私钥（仅首次）===
 if [ ! -f "$KEY_PATH" ]; then
