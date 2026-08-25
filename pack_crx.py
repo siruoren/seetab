@@ -102,22 +102,22 @@ def get_public_key_der(pem_path):
             os.unlink(der_path)
 
 
-def sign_zip(pem_path, zip_data):
-    """用 openssl dgst -sha256 -sign 对 zip 数据签名（PKCS#1 v1.5 + SHA-256）。"""
-    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as zf:
-        zf.write(zip_data)
-        zip_path = zf.name
-    sig_path = zip_path + '.sig'
+def sign_data(pem_path, data):
+    """用 openssl dgst -sha256 -sign 对任意数据签名（PKCS#1 v1.5 + SHA-256）。"""
+    with tempfile.NamedTemporaryFile(suffix='.bin', delete=False) as f:
+        f.write(data)
+        data_path = f.name
+    sig_path = data_path + '.sig'
     try:
         subprocess.run(
             ['openssl', 'dgst', '-sha256', '-sign', pem_path,
-             '-out', sig_path, zip_path],
+             '-out', sig_path, data_path],
             check=True, stderr=subprocess.DEVNULL
         )
         with open(sig_path, 'rb') as f:
             return f.read()
     finally:
-        for p in (zip_path, sig_path):
+        for p in (data_path, sig_path):
             if os.path.exists(p):
                 os.unlink(p)
 
@@ -133,26 +133,39 @@ def compute_extension_id(public_key_der):
     return ''.join(chars)
 
 
-def build_crx3_header(sha256_hash, public_key_der, signature):
-    """构造 CrxFileHeader protobuf（sha256_with_rsa 形式）。
+def build_signed_data(ext_id, public_key_der):
+    """构造 SignedData protobuf 并序列化为字节。
 
-    CrxFileHeader {
-      optional Sha256WithRsa sha256_with_rsa = 1;  // 字段 1
-    }
-    Sha256WithRsa {
-      optional bytes sha256_hash = 1;   // 字段 1
-      optional int32 algorithm = 2;      // 字段 2 (0 = RSA)
-      optional bytes public_key = 3;     // 字段 3
-      optional bytes signature = 4;     // 字段 4
+    SignedData {
+      optional string crx_id = 1;          // 字段 1（32 字符 a-p 编码）
+      optional bytes crx_public_key = 2;   // 字段 2（公钥 DER）
     }
     """
-    sha256_with_rsa = (
-        field_bytes(1, sha256_hash) +
-        field_varint(2, 0) +
-        field_bytes(3, public_key_der) +
-        field_bytes(4, signature)
+    return field_bytes(1, ext_id.encode('ascii')) + field_bytes(2, public_key_der)
+
+
+def build_crx3_header(sha256_hash, public_key_der, ext_id, signature, signed_data_bytes):
+    """构造 CrxFileHeader protobuf（asymmetric_key + signed_asymmetric_key_data）。
+
+    现代 Chrome 要求此格式，否则报 CRX_REQUIRED_PROOF_MISSING。
+
+    CrxFileHeader {
+      optional Sha256WithRsa sha256_with_rsa = 1;             // 跳过（legacy）
+      optional AsymmetricKey asymmetric_key = 2;               // 字段 2
+      optional bytes sha256_hash = 10000;                       // 字段 10000
+      optional SignedData signed_asymmetric_key_data = 10001;  // 字段 10001
+    }
+    AsymmetricKey {
+      optional bytes public_key = 1;   // 字段 1
+      optional bytes signature = 2;     // 字段 2
+    }
+    """
+    asymmetric_key = field_bytes(1, public_key_der) + field_bytes(2, signature)
+    return (
+        field_bytes(2, asymmetric_key) +
+        field_bytes(10000, sha256_hash) +
+        field_bytes(10001, signed_data_bytes)
     )
-    return field_bytes(1, sha256_with_rsa)
 
 
 def write_crx3(out_path, header, archive):
@@ -189,11 +202,13 @@ def main():
     archive = zip_extension(args.src)
     sha256_hash = hashlib.sha256(archive).digest()
 
-    # 签名
-    signature = sign_zip(args.key, archive)
+    # 构造 SignedData（crx_id + crx_public_key），用私钥对其签名
+    signed_data_bytes = build_signed_data(ext_id, public_key_der)
+    signature = sign_data(args.key, signed_data_bytes)
 
-    # 构造 header 并写出
-    header = build_crx3_header(sha256_hash, public_key_der, signature)
+    # 构造 CrxFileHeader（asymmetric_key + sha256_hash + signed_asymmetric_key_data）
+    header = build_crx3_header(sha256_hash, public_key_der, ext_id,
+                                 signature, signed_data_bytes)
     write_crx3(args.out, header, archive)
 
     print(f'==> 已写出 CRX3: {args.out}', file=sys.stderr)
