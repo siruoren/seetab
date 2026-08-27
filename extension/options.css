@@ -156,6 +156,9 @@ body {
   font-size: 14px;
   font-weight: 500;
   color: #2c3e50;
+  max-width: 60%;
+  word-break: break-all;
+  text-align: right;
 }
 
 /* 开关样式 */

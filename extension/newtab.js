@@ -995,6 +995,22 @@ function showToast(msg) {
 
 document.getElementById('saveBmBtn').addEventListener('click', saveRemoteToLocal);
 
+// === 代码库地址：点击拉取后端 Git 仓库地址并显示 ===
+document.getElementById('repoBtn').addEventListener('click', async () => {
+  try {
+    const config = await getStorage(['serverUrl', 'apiPassword']);
+    if (!config.serverUrl) { showToast(t('error.noBackend')); return; }
+    const headers = config.apiPassword ? { 'X-API-Key': config.apiPassword } : {};
+    const resp = await proxyFetch(`${toFetchUrl(config.serverUrl)}/api/repo`, { headers });
+    if (!resp.ok) { showToast(t('repo.fetchFailed')); return; }
+    const data = await resp.json();
+    const url = (data && data.repo_url) || '';
+    showToast(url ? `${t('repo.title')}: ${url}` : t('repo.empty'));
+  } catch (e) {
+    showToast(t('repo.fetchFailed'));
+  }
+});
+
 // === 设置按钮 ===
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
