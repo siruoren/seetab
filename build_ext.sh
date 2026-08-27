@@ -71,5 +71,6 @@ echo "    已生成: dist/$PKG_FIREFOX"
 
 echo ""
 echo "==> 安装方式:"
-echo "    Chrome/Edge: 将 zip 拖入 chrome://extensions 页面安装"
+echo "    Chrome/Edge: 打开 chrome://extensions → 开启开发者模式 → 「加载已解压的扩展程序」→ 选择 extension/ 目录"
+echo "    （zip 仅供备份分发，Chrome 拖拽 zip 会报 CRX_HEADER_INVALID）"
 echo "    Firefox:     将 zip 拖入 about:addons 页面安装"

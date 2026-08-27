@@ -340,6 +340,15 @@ def api_update_time():
     return jsonify({"last_update": last_update})
 
 
+@app.route("/api/repo")
+def api_repo():
+    """获取后端书签数据来源的 Git 仓库地址"""
+    repo_url = ""
+    if git_sync and getattr(git_sync, "repo_url", ""):
+        repo_url = git_sync.repo_url
+    return jsonify({"repo_url": repo_url})
+
+
 @app.route("/api/bookmarks")
 def api_bookmarks():
     """获取所有书签数据"""

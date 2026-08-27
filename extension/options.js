@@ -176,6 +176,41 @@ function updateStatus() {
       fetchEl.textContent = t('settings.neverSynced');
     }
   });
+
+  // 同步状态时一并拉取后台服务的代码库地址
+  fetchRepoUrl();
+}
+
+// 获取后台服务书签来源 Git 仓库地址并显示
+async function fetchRepoUrl() {
+  const repoEl = document.getElementById('statusRepoUrl');
+  if (!repoEl) return;
+
+  const { serverUrl, apiPassword } = await new Promise(resolve => {
+    chrome.storage.local.get({ serverUrl: '', apiPassword: '' }, resolve);
+  });
+  if (!serverUrl) { repoEl.textContent = t('repo.noRepo'); return; }
+
+  try {
+    const headers = apiPassword ? { 'X-API-Key': apiPassword } : {};
+    const resp = await proxyFetch(`${toFetchUrl(serverUrl)}/api/repo`, { headers });
+    if (!resp.ok) { repoEl.textContent = t('repo.fetchFailed'); return; }
+    const data = await resp.json();
+    const url = (data && data.repo_url) || '';
+    if (!url) { repoEl.textContent = t('repo.noRepo'); return; }
+    // 仓库地址可点击跳转
+    repoEl.innerHTML = '';
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.style.color = 'var(--primary, #7b8ad6)';
+    a.style.wordBreak = 'break-all';
+    repoEl.appendChild(a);
+  } catch (e) {
+    repoEl.textContent = t('repo.fetchFailed');
+  }
 }
 
 // 显示状态消息
