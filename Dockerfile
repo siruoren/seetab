@@ -19,6 +19,8 @@ RUN mkdir -p /app/data /root/.ssh && \
     chmod 700 /root/.ssh && \
     echo "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null" > /root/.ssh/config
 
+RUN git config --global --add safe.directory /app/data/repo
+
 EXPOSE 80
 
 CMD ["python", "run.py"]
