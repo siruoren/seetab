@@ -118,12 +118,12 @@ const I18N = {
     'backend.offline': '后台服务不可用',
 
     // 代码库地址
-    'repo.title': '代码库地址',
-    'repo.url': '代码库地址',
+    'repo.title': '书签库地址',
+    'repo.url': '书签库地址',
     'repo.noRepo': '未配置',
-    'repo.fetchFailed': '获取代码库地址失败',
+    'repo.fetchFailed': '获取书签库地址失败',
     'repo.tooltip': '书签数据来源',
-    'repo.empty': '后端未配置 Git 仓库地址',
+    'repo.empty': '后端未配置 Git 书签库地址',
   },
 
   en: {
@@ -242,12 +242,12 @@ const I18N = {
     'backend.offline': 'Backend service offline',
 
     // Repository URL
-    'repo.title': 'Repository URL',
-    'repo.url': 'Repository URL',
+    'repo.title': 'Bookmark Repository URL',
+    'repo.url': 'Bookmark Repository URL',
     'repo.noRepo': 'Not configured',
-    'repo.fetchFailed': 'Failed to fetch repository URL',
+    'repo.fetchFailed': 'Failed to fetch bookmark repository URL',
     'repo.tooltip': 'Bookmark data source',
-    'repo.empty': 'Backend has no Git repository configured',
+    'repo.empty': 'Backend has no Git bookmark repository configured',
   }
 };
 
