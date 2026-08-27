@@ -893,6 +893,10 @@ if (chrome.bookmarks && chrome.bookmarks.onChanged) {
 async function saveRemoteToLocal() {
   const btn = document.getElementById('saveBmBtn');
   if (btn.classList.contains('saving')) return;
+
+  // 用户确认后才执行
+  if (!confirm(t('bookmark.save.confirm'))) return;
+
   btn.classList.add('saving');
 
   try {

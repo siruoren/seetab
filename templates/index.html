@@ -912,6 +912,7 @@ const I18N = {
     'bookmark.export.complete.dup': '已导出 {0} 个书签（跳过 {1} 个重复），请在浏览器中导入',
     'bookmark.export.complete': '已导出 {0} 个书签，请在浏览器中导入',
     'bookmark.export.failed': '导出失败：{0}',
+    'bookmark.export.confirm': '确定将远程书签导出为 HTML 文件吗？',
     'bookmark.bar': '书签栏',
     'weather.sunny': '晴', 'weather.cloudy': '多云', 'weather.overcast': '阴',
     'weather.rain': '雨', 'weather.snow': '雪', 'weather.fog': '雾',
@@ -947,6 +948,7 @@ const I18N = {
     'bookmark.export.complete.dup': 'Exported {0} bookmarks ({1} duplicates skipped). Import them in your browser.',
     'bookmark.export.complete': 'Exported {0} bookmarks. Import them in your browser.',
     'bookmark.export.failed': 'Export failed: {0}',
+    'bookmark.export.confirm': 'Export remote bookmarks as an HTML file?',
     'bookmark.bar': 'Bookmarks Bar',
     'weather.sunny': 'Sunny', 'weather.cloudy': 'Cloudy', 'weather.overcast': 'Overcast',
     'weather.rain': 'Rain', 'weather.snow': 'Snow', 'weather.fog': 'Fog',
@@ -1802,6 +1804,9 @@ function saveRemoteToLocal() {
     showToast(t('bookmark.export.none'));
     return;
   }
+
+  // 用户确认后才执行
+  if (!confirm(t('bookmark.export.confirm'))) return;
 
   const btn = document.getElementById('saveBmBtn');
   btn.classList.add('saving');

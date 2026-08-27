@@ -32,6 +32,7 @@ const I18N = {
     'bookmark.save.failed': '保存失败：{0}',
     'bookmark.save.noApi': '当前环境不支持浏览器书签API',
     'bookmark.save.noBar': '无法获取书签栏',
+    'bookmark.save.confirm': '确定将远程书签保存到本地浏览器书签栏吗？',
     'error.timeout': '操作超时',
     'background.noResponse': 'background 无响应',
 
@@ -40,6 +41,7 @@ const I18N = {
     'bookmark.export.complete.dup': '已导出 {0} 个书签（跳过 {1} 个重复），请在浏览器中导入',
     'bookmark.export.complete': '已导出 {0} 个书签，请在浏览器中导入',
     'bookmark.export.failed': '导出失败：{0}',
+    'bookmark.export.confirm': '确定将远程书签导出为 HTML 文件吗？',
     'bookmark.bar': '书签栏',
     'bookmark.browser': '浏览器书签',
 
@@ -156,6 +158,7 @@ const I18N = {
     'bookmark.save.failed': 'Save failed: {0}',
     'bookmark.save.noApi': 'Browser bookmarks API not available',
     'bookmark.save.noBar': 'Cannot access bookmark bar',
+    'bookmark.save.confirm': 'Save remote bookmarks to browser bookmark bar?',
     'error.timeout': 'Operation timed out',
     'background.noResponse': 'Background no response',
 
@@ -164,6 +167,7 @@ const I18N = {
     'bookmark.export.complete.dup': 'Exported {0} bookmarks ({1} duplicates skipped). Import them in your browser.',
     'bookmark.export.complete': 'Exported {0} bookmarks. Import them in your browser.',
     'bookmark.export.failed': 'Export failed: {0}',
+    'bookmark.export.confirm': 'Export remote bookmarks as an HTML file?',
     'bookmark.bar': 'Bookmarks Bar',
     'bookmark.browser': 'Browser Bookmarks',
 
