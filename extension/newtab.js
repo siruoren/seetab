@@ -995,19 +995,35 @@ function showToast(msg) {
 
 document.getElementById('saveBmBtn').addEventListener('click', saveRemoteToLocal);
 
-// === 代码库地址：点击拉取后端 Git 仓库地址并显示 ===
+// === 书签库地址：点击拉取后端 Git 仓库地址并持久显示（不自动收起） ===
 document.getElementById('repoBtn').addEventListener('click', async () => {
+  // 已存在弹窗则先关闭
+  const existed = document.querySelector('body > .repo-popup');
+  if (existed) { existed.remove(); return; }
+
+  const popup = document.createElement('div');
+  popup.className = 'repo-popup';
+  popup.innerHTML = `<span class="repo-popup-label">${escHtml(t('repo.title'))}</span><span class="repo-popup-loading">...</span><button class="repo-popup-close" aria-label="close">✕</button>`;
+  document.body.appendChild(popup);
+  popup.querySelector('.repo-popup-close').addEventListener('click', () => popup.remove());
+
+  const urlEl = popup.querySelector('.repo-popup-loading');
   try {
     const config = await getStorage(['serverUrl', 'apiPassword']);
-    if (!config.serverUrl) { showToast(t('error.noBackend')); return; }
+    if (!config.serverUrl) { urlEl.textContent = t('error.noBackend'); return; }
     const headers = config.apiPassword ? { 'X-API-Key': config.apiPassword } : {};
     const resp = await proxyFetch(`${toFetchUrl(config.serverUrl)}/api/repo`, { headers });
-    if (!resp.ok) { showToast(t('repo.fetchFailed')); return; }
+    if (!resp.ok) { urlEl.textContent = t('repo.fetchFailed'); return; }
     const data = await resp.json();
     const url = (data && data.repo_url) || '';
-    showToast(url ? `${t('repo.title')}: ${url}` : t('repo.empty'));
+    if (!url) { urlEl.textContent = t('repo.empty'); return; }
+    const a = document.createElement('a');
+    a.className = 'repo-popup-url';
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = url;
+    urlEl.replaceWith(a);
   } catch (e) {
-    showToast(t('repo.fetchFailed'));
+    urlEl.textContent = t('repo.fetchFailed');
   }
 });
 

@@ -228,6 +228,35 @@ body > .save-bm-toast {
 }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
+/* === 书签库地址弹窗（不自动收起） === */
+body > .repo-popup {
+  position: fixed; top: 60px; right: 20px; z-index: 99999;
+  background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 36px 14px 18px; font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  animation: toast-in 0.3s ease;
+  max-width: calc(100vw - 40px);
+  word-break: break-all;
+  white-space: normal;
+}
+body > .repo-popup .repo-popup-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+body > .repo-popup .repo-popup-url {
+  color: var(--primary);
+  text-decoration: none;
+}
+body > .repo-popup .repo-popup-url:hover { text-decoration: underline; }
+body > .repo-popup .repo-popup-close {
+  position: absolute; top: 6px; right: 8px;
+  cursor: pointer; font-size: 16px; line-height: 1;
+  color: var(--text2); background: none; border: none; padding: 4px;
+}
+body > .repo-popup .repo-popup-close:hover { color: var(--text); }
+
 /* === 主容器 === */
 .container {
   height: 100vh;
@@ -1850,16 +1879,32 @@ function showToast(msg) {
 
 document.getElementById('saveBmBtn').addEventListener('click', saveRemoteToLocal);
 
-// 代码库地址：点击拉取后端 Git 仓库地址并显示
+// 书签库地址：点击拉取后端 Git 仓库地址并持久显示（不自动收起）
 document.getElementById('repoBtn').addEventListener('click', async () => {
+  // 已存在弹窗则先关闭
+  const existed = document.querySelector('body > .repo-popup');
+  if (existed) { existed.remove(); return; }
+
+  const popup = document.createElement('div');
+  popup.className = 'repo-popup';
+  popup.innerHTML = `<span class="repo-popup-label">${escHtml(t('repo.title'))}</span><span class="repo-popup-loading">...</span><button class="repo-popup-close" aria-label="close">✕</button>`;
+  document.body.appendChild(popup);
+  popup.querySelector('.repo-popup-close').addEventListener('click', () => popup.remove());
+
+  const urlEl = popup.querySelector('.repo-popup-loading');
   try {
     const resp = await fetch('/api/repo');
-    if (!resp.ok) { showToast(t('repo.fetchFailed')); return; }
+    if (!resp.ok) { urlEl.textContent = t('repo.fetchFailed'); return; }
     const data = await resp.json();
     const url = (data && data.repo_url) || '';
-    showToast(url ? `${t('repo.title')}: ${url}` : t('repo.empty'));
+    if (!url) { urlEl.textContent = t('repo.empty'); return; }
+    const a = document.createElement('a');
+    a.className = 'repo-popup-url';
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = url;
+    urlEl.replaceWith(a);
   } catch (e) {
-    showToast(t('repo.fetchFailed'));
+    urlEl.textContent = t('repo.fetchFailed');
   }
 });
 
