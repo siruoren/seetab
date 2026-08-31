@@ -38,3 +38,10 @@ recent:
   max_count: 20
   # 存储文件路径
   storage_path: "./data/recent.json"
+
+# 静态页面配置(每次后台书签更新时重新生成，供 nginx 直接展示)
+static_page:
+  # 是否启用静态页面生成
+  enabled: true
+  # 输出 HTML 文件路径(nginx 可直接托管该文件)
+  output_path: "./data/static/index.html"

@@ -10,6 +10,7 @@ from flask import Flask, jsonify, render_template, request
 from parser import parse_bookmarks, search_bookmarks
 from git_sync import GitSync
 from scheduler import Scheduler
+from static_page import generate_static_page
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,9 @@ recent_max: int = 18
 recent_data_dir: str = "./data/recent"
 # 文件修改时间跟踪
 bookmark_file_mtimes: Dict[str, float] = {}
+# 静态页面配置
+static_page_enabled: bool = True
+static_page_output_path: str = "./data/static/index.html"
 
 # 配置热加载相关
 config_path: str = "config.yml"
@@ -242,13 +246,27 @@ def refresh_bookmarks() -> bool:
         bookmarks_data = list(merged.values())
         last_update = time.time()
         logger.info("书签数据已更新(含TXT合并), 共 %d 个分类", len(bookmarks_data))
-    
+        # 数据更新后重新生成静态导航页面（供 nginx 直接展示）
+        generate_static_page_sync()
+
     return True
+
+
+def generate_static_page_sync():
+    """同步生成静态导航页面（读取当前全局书签数据与配置）"""
+    if not static_page_enabled:
+        return
+    repo_url = git_sync.repo_url if git_sync and getattr(git_sync, "repo_url", "") else ""
+    try:
+        generate_static_page(bookmarks_data, last_update, static_page_output_path, repo_url)
+    except Exception as e:
+        logger.warning("生成静态导航页面失败: %s", e)
 
 
 def apply_config(config: dict):
     """应用配置到全局状态(热加载核心)"""
     global git_sync, scheduler, recent_max, api_key
+    global static_page_enabled, static_page_output_path
 
     with config_lock:
         app.config_data = config
@@ -268,6 +286,11 @@ def apply_config(config: dict):
 
         # API Key 认证（可选）
         api_key = config.get("api_key", "")
+
+        # 静态页面配置
+        sp_cfg = config.get("static_page", {})
+        static_page_enabled = sp_cfg.get("enabled", True)
+        static_page_output_path = sp_cfg.get("output_path", "./data/static/index.html")
 
         # 停止旧调度器
         if scheduler:
