@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "SeeTab",
+    "description": "扩展名称（品牌名，各语言保持一致）"
+  },
+  "extDescription": {
+    "message": "自定义新标签页 - 从后端服务获取书签导航",
+    "description": "扩展商店上架简介（简体中文）"
+  }
+}
