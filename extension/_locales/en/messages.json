@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "SeeTab",
+    "description": "Extension name (brand, kept identical across locales)"
+  },
+  "extDescription": {
+    "message": "Custom new tab page — fetch and display bookmarks from your backend service",
+    "description": "Extension store listing description (English)"
+  }
+}

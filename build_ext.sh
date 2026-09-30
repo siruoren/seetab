@@ -28,6 +28,7 @@ COMMON_FILES=(
   background.js
   i18n.js pinyin.js
   icons/
+  _locales/
 )
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
@@ -59,6 +60,7 @@ cp "$EXT_DIR/background-firefox.js" "$TMP_DIR/"
 cp "$EXT_DIR/i18n.js" "$TMP_DIR/"
 cp "$EXT_DIR/pinyin.js" "$TMP_DIR/"
 cp -r "$EXT_DIR/icons" "$TMP_DIR/"
+cp -r "$EXT_DIR/_locales" "$TMP_DIR/"
 cp "$EXT_DIR/manifest-firefox.json" "$TMP_DIR/manifest.json"
 # 固定 gecko id
 RANDOM_ID='dp8y1l87zlxq'
