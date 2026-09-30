@@ -54,6 +54,7 @@ jobs:
           cp extension/background.js "$CHROME_DIR/"
           cp extension/i18n.js extension/pinyin.js "$CHROME_DIR/"
           cp -r extension/icons "$CHROME_DIR/"
+          cp -r extension/_locales "$CHROME_DIR/"
 
           cd "$CHROME_DIR"
           zip -r "$OLDPWD/dist/seetab-chrome-v${VERSION}.zip" . -x "*.DS_Store" "__MACOSX/*"
@@ -70,6 +71,7 @@ jobs:
           cp extension/background-firefox.js "$XPI_DIR/"
           cp extension/i18n.js extension/pinyin.js "$XPI_DIR/"
           cp -r extension/icons "$XPI_DIR/"
+          cp -r extension/_locales "$XPI_DIR/"
 
           # 每次构建随机生成 gecko id
           RANDOM_ID='dp8y1l87zlxq'
@@ -162,6 +164,7 @@ jobs:
       #     cp extension/background-firefox.js "$SIGN_DIR/"
       #     cp extension/pinyin.js "$SIGN_DIR/"
       #     cp -r extension/icons "$SIGN_DIR/"
+      #     cp -r extension/_locales "$SIGN_DIR/"
 
       #     # 创建 AMO metadata（listed 版本必须包含 license 和 categories）
       #     cat > "$SIGN_DIR/metadata.json" << 'META_EOF'

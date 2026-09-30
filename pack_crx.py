@@ -37,6 +37,7 @@ COMMON_FILES = [
     'background.js',
     'i18n.js', 'pinyin.js',
     'icons/',
+    '_locales/',
 ]
 
 
