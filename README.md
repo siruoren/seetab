@@ -1,8 +1,10 @@
 # SeeTab
 
 基于 Git 同步的个人书签导航系统，包含后端 API 服务、Web 前端页面和浏览器扩展（兼容 Chrome / Edge / Firefox），实现全平台书签导航。
-[firefox] https://addons.mozilla.org/zh-CN/firefox/addon/seetab/
-[edge/chrome] https://microsoftedge.microsoft.com/addons/detail/seetab/jnccihfbbbickbcgbbkhkmbbmcggbppo
+
+[Firefox 扩展](https://addons.mozilla.org/zh-CN/firefox/addon/seetab/)
+
+[Edge / Chrome 扩展](https://microsoftedge.microsoft.com/addons/detail/seetab/jnccihfbbbickbcgbbkhkmbbmcggbppo)
 
 ## 项目简介
 
